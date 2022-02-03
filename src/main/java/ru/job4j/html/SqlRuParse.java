@@ -4,6 +4,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import ru.job4j.grabber.utils.SqlRuDateTimeParser;
 
 public class SqlRuParse {
     public static void main(String[] args) throws Exception {
@@ -16,7 +17,10 @@ public class SqlRuParse {
             Element parent = td.parent();
             assert parent != null;
             Element altCol = parent.child(5);
-            System.out.println("Дата обновления поста: " + altCol.text());
+            SqlRuDateTimeParser parser = new SqlRuDateTimeParser();
+            System.out.println("Дата обновления поста (до преобразования): " + altCol.text());
+            System.out.println("Дата обновления поста (после преобразования): " + parser.parse(altCol.text())
+                    + System.lineSeparator());
         }
     }
 }
