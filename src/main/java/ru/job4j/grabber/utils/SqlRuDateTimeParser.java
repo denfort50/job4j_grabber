@@ -16,23 +16,19 @@ public class SqlRuDateTimeParser implements DateTimeParser {
     public LocalDateTime parse(String parse) {
         String[] dateAndTime = parse.split(",");
         String[] time = dateAndTime[1].substring(1).split(":");
-        int hours = Integer.parseInt(time[0]);
-        int minutes = Integer.parseInt(time[1]);
-        LocalTime localTime = LocalTime.of(hours, minutes);
-        boolean today = "сегодня".equals(dateAndTime[0]);
-        boolean yesterday = "вчера".equals(dateAndTime[0]);
-        LocalDate localDate;
-        if (today) {
-            localDate = LocalDate.now();
-        } else if (yesterday) {
-            localDate = LocalDate.now().minus(Period.ofDays(1));
+        LocalTime localTime = LocalTime.of(Integer.parseInt(time[0]), Integer.parseInt(time[1]));
+        LocalDateTime result;
+        if ("сегодня".equals(dateAndTime[0])) {
+            result = LocalDateTime.of(LocalDate.now(), localTime);
+        } else if ("вчера".equals(dateAndTime[0])) {
+            result = LocalDateTime.of(LocalDate.now().minus(Period.ofDays(1)), localTime);
         } else {
             String[] date = dateAndTime[0].split(" ");
             int day = Integer.parseInt(date[0]);
             Month month = Month.of(MONTHS.get(date[1]));
             int year = 2000 + Integer.parseInt(date[2]);
-            localDate = LocalDate.of(year, month, day);
+            result = LocalDateTime.of(LocalDate.of(year, month, day), localTime);
         }
-        return LocalDateTime.of(localDate, localTime);
+        return result;
     }
 }
