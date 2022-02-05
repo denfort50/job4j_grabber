@@ -4,45 +4,59 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import ru.job4j.grabber.Parse;
 import ru.job4j.grabber.model.Post;
+import ru.job4j.grabber.utils.DateTimeParser;
 import ru.job4j.grabber.utils.SqlRuDateTimeParser;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
-public class SqlRuParse {
+public class SqlRuParse implements Parse {
 
-    public static Post getPost(Element href) throws IOException {
-        String link = href.attr("href");
-        String title = href.text();
-        Document doc = Jsoup.connect(link).get();
-        String description = doc.select(".msgBody").get(1).text();
-        SqlRuDateTimeParser parser = new SqlRuDateTimeParser();
-        String dateOfCreated = doc.select(".msgFooter").text().replaceAll(" *\\[.*", "");
-        LocalDateTime created = parser.parse(dateOfCreated);
-        return new Post(title, link, description, created);
+    private final DateTimeParser dateTimeParser;
+
+    public SqlRuParse(DateTimeParser dateTimeParser) {
+        this.dateTimeParser = dateTimeParser;
     }
 
-    public static void main(String[] args) throws Exception {
+    @Override
+    public List<Post> list(String link) throws IOException {
+        List<Post> javaPosts = new ArrayList<>();
         int pageCounter = 1;
         while (pageCounter <= 5) {
-            Document doc = Jsoup.connect(String.format("https://www.sql.ru/forum/job-offers/%d", pageCounter)).get();
+            String pageLink = String.format(link + "/%d", pageCounter);
+            Document doc = Jsoup.connect(pageLink).get();
             Elements row = doc.select(".postslisttopic");
             for (Element td : row) {
                 Element href = td.child(0);
-                if (td.text().startsWith("Важно")) {
+                if (td.text().startsWith("Важно") || !td.text().matches(".*[jJ][aA][vV][aA][^S].*")) {
                     continue;
                 }
-                System.out.println(href.attr("href"));
-                System.out.println(href.text());
-                Element parent = td.parent();
-                assert parent != null;
-                Element altCol = parent.child(5);
-                SqlRuDateTimeParser parser = new SqlRuDateTimeParser();
-                System.out.println("Дата обновления поста: " + parser.parse(altCol.text())
-                        + System.lineSeparator());
-                System.out.println(getPost(href) + System.lineSeparator());
+                String postLink = href.attr("href");
+                String postTitle = href.text();
+                javaPosts.add(detail(postLink, postTitle));
             }
             pageCounter++;
         }
+        return javaPosts;
+    }
+
+    @Override
+    public Post detail(String postLink, String postTitle) throws IOException {
+        Document doc = Jsoup.connect(postLink).get();
+        String description = doc.select(".msgBody").get(1).text();
+        String dateOfCreated = doc.select(".msgFooter").text().replaceAll(" *\\[.*", "");
+        LocalDateTime created = dateTimeParser.parse(dateOfCreated);
+        return new Post(postTitle, postLink, description, created);
+    }
+
+    public static void main(String[] args) throws Exception {
+        SqlRuDateTimeParser parser = new SqlRuDateTimeParser();
+        SqlRuParse parsing = new SqlRuParse(parser);
+        String pageLink = "https://www.sql.ru/forum/job-offers";
+        List<Post> javaPosts = parsing.list(pageLink);
+        javaPosts.forEach(System.out::println);
     }
 }
