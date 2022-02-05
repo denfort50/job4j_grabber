@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class SqlRuParse implements Parse {
 
@@ -31,12 +32,12 @@ public class SqlRuParse implements Parse {
             Elements row = doc.select(".postslisttopic");
             for (Element td : row) {
                 Element href = td.child(0);
-                if (td.text().startsWith("Важно") || !td.text().matches(".*[jJ][aA][vV][aA][^S].*")) {
+                if (td.text().startsWith("Важно") || !td.text().matches(".*[jJ][aA][vV][aA][^sS].*")) {
                     continue;
                 }
                 String postLink = href.attr("href");
                 String postTitle = href.text();
-                javaPosts.add(detail(postLink, postTitle));
+                javaPosts.add(detail(postLink));
             }
             pageCounter++;
         }
@@ -44,8 +45,10 @@ public class SqlRuParse implements Parse {
     }
 
     @Override
-    public Post detail(String postLink, String postTitle) throws IOException {
+    public Post detail(String postLink) throws IOException {
         Document doc = Jsoup.connect(postLink).get();
+        String postTitle = Objects.requireNonNull(doc.select(".messageHeader")
+                .first()).text().replaceAll(" \\[new]", "");
         String description = doc.select(".msgBody").get(1).text();
         String dateOfCreated = doc.select(".msgFooter").text().replaceAll(" *\\[.*", "");
         LocalDateTime created = dateTimeParser.parse(dateOfCreated);
