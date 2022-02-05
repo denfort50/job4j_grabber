@@ -23,39 +23,46 @@ public class SqlRuParse implements Parse {
     }
 
     @Override
-    public List<Post> list(String link) throws IOException {
+    public List<Post> list(String link) {
         List<Post> javaPosts = new ArrayList<>();
-        int pageCounter = 1;
-        while (pageCounter <= 5) {
+        for (int pageCounter = 1; pageCounter <= 5; pageCounter++) {
             String pageLink = String.format(link + "/%d", pageCounter);
-            Document doc = Jsoup.connect(pageLink).get();
-            Elements row = doc.select(".postslisttopic");
-            for (Element td : row) {
-                Element href = td.child(0);
-                if (td.text().startsWith("Важно") || !td.text().matches(".*[jJ][aA][vV][aA][^sS].*")) {
-                    continue;
+            try {
+                Document doc = Jsoup.connect(pageLink).get();
+                Elements row = doc.select(".postslisttopic");
+                for (Element td : row) {
+                    Element href = td.child(0);
+                    if (td.text().startsWith("Важно") || !td.text().matches(".*[jJ][aA][vV][aA][^sS].*")) {
+                        continue;
+                    }
+                    String postLink = href.attr("href");
+                    javaPosts.add(detail(postLink));
                 }
-                String postLink = href.attr("href");
-                String postTitle = href.text();
-                javaPosts.add(detail(postLink));
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            pageCounter++;
         }
         return javaPosts;
     }
 
     @Override
-    public Post detail(String postLink) throws IOException {
-        Document doc = Jsoup.connect(postLink).get();
-        String postTitle = Objects.requireNonNull(doc.select(".messageHeader")
-                .first()).text().replaceAll(" \\[new]", "");
-        String description = doc.select(".msgBody").get(1).text();
-        String dateOfCreated = doc.select(".msgFooter").text().replaceAll(" *\\[.*", "");
-        LocalDateTime created = dateTimeParser.parse(dateOfCreated);
-        return new Post(postTitle, postLink, description, created);
+    public Post detail(String postLink) {
+        Post post = null;
+        try {
+            Document doc = Jsoup.connect(postLink).get();
+            String postTitle = Objects.requireNonNull(doc.select(".messageHeader")
+                    .first()).text().replaceAll(" \\[new]", "");
+            String description = doc.select(".msgBody").get(1).text();
+            String dateOfCreated = doc.select(".msgFooter").text().replaceAll(" *\\[.*", "");
+            LocalDateTime created = dateTimeParser.parse(dateOfCreated);
+            post = new Post(postTitle, postLink, description, created);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return post;
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         SqlRuDateTimeParser parser = new SqlRuDateTimeParser();
         SqlRuParse parsing = new SqlRuParse(parser);
         String pageLink = "https://www.sql.ru/forum/job-offers";
