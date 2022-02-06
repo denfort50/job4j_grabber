@@ -61,12 +61,4 @@ public class SqlRuParse implements Parse {
         }
         return post;
     }
-
-    public static void main(String[] args) {
-        SqlRuDateTimeParser parser = new SqlRuDateTimeParser();
-        SqlRuParse parsing = new SqlRuParse(parser);
-        String pageLink = "https://www.sql.ru/forum/job-offers";
-        List<Post> javaPosts = parsing.list(pageLink);
-        javaPosts.forEach(System.out::println);
-    }
 }
