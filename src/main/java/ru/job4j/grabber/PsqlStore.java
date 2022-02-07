@@ -16,10 +16,12 @@ public class PsqlStore implements Store, AutoCloseable {
 
     private final Connection cnn;
 
-    public static Properties getConfig() throws IOException {
+    public static Properties getConfig() {
         Properties config = new Properties();
         try (InputStream in = PsqlStore.class.getClassLoader().getResourceAsStream("rabbit.properties")) {
             config.load(in);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         return config;
     }
@@ -81,7 +83,7 @@ public class PsqlStore implements Store, AutoCloseable {
         try (PreparedStatement ps = cnn.prepareStatement(sql)) {
             ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
+            if (rs.next()) {
                 post = returnPost(rs);
             }
         } catch (SQLException e) {
@@ -97,16 +99,19 @@ public class PsqlStore implements Store, AutoCloseable {
         }
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         SqlRuDateTimeParser parser = new SqlRuDateTimeParser();
         SqlRuParse parsing = new SqlRuParse(parser);
         String pageLink = "https://www.sql.ru/forum/job-offers";
         List<Post> postList = parsing.list(pageLink);
-        PsqlStore psqlStore = new PsqlStore(getConfig());
-        postList.forEach(psqlStore::save);
-        System.out.println("Select all.");
-        psqlStore.getAll().forEach(System.out::println);
-        System.out.println("Select with id 7.");
-        System.out.println(psqlStore.findById(7));
+        try (PsqlStore psqlStore = new PsqlStore(getConfig())) {
+            postList.forEach(psqlStore::save);
+            System.out.println("Select all.");
+            psqlStore.getAll().forEach(System.out::println);
+            System.out.println("Select with id 7.");
+            System.out.println(psqlStore.findById(7));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
